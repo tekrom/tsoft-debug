@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <title>Theme Panel</title>
+  <style>
+    :root {
+      --primary-color: #fb8122;
+      --primary-color-dark: #dd6c1b;
+      --primary-color-light: #fff4ec;
+      --danger-color: #b91c1c;
+      --bg-color: #ffffff;
+      --bg-muted: #fafafa;
+      --bg-alt: #f1f5f9;
+      --text-color: #1f2937;
+      --text-muted: #475569;
+      --border-color: #d4d4d4;
+      --surface-0: #ffffff;
+      --surface-1: #f5f5f5;
+      --surface-2: #ececec;
+      --border-color: #e2e2e2;
+      --text-color: #202124;
+      --text-muted: #5f6368;
+      --accent-color: var(--primary-color);
+    }
+
+    body[data-theme="dark"] {
+      --bg-color: #0f172a;
+      --bg-muted: #1e293b;
+      --bg-alt: #334155;
+      --text-color: #f8fafc;
+      --text-muted: #cbd5e1;
+      --border-color: #475569;
+      --primary-color-light: #3e2a18;
+      --surface-0: #0f0f10;
+      --surface-1: #141415;
+      --surface-2: #1b1b1d;
+      --border-color: #262626;
+      --text-color: #f5f5f5;
+      --text-muted: #9ca3af;
+      --accent-color: var(--primary-color);
+    }
+
+    body {
+      font-family: sans-serif;
+      padding: 8px 10px;
+      background: var(--surface-0);
+      color: var(--text-color);
+      transition: background .25s ease, color .25s ease;
+    }
+
+    body[data-theme="dark"] {
+      background: radial-gradient(circle at 30% 20%, #181818 0%, #0f0f10 60%);
+    }
+
+    p {
+      margin: 6px 0 16px 0;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+      position: relative;
+    }
+
+    .panel-header h2 {
+      margin: 0;
+      font-size: 18px;
+      color: var(--text-color);
+    }
+
+    .active-page {
+      font-size: 13px;
+      color: var(--text-muted);
+      max-width: 60%;
+      text-align: right;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .warning-message {
+      border: 1px solid var(--danger-color);
+      background: #fef2f2;
+      border-radius: 6px;
+      padding: 10px 12px;
+      color: #7f1d1d;
+      font-size: 13px;
+      display: none;
+      margin-bottom: 14px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .warning-message.visible {
+      display: block;
+    }
+
+    section {
+      margin-bottom: 20px;
+      border: 1px solid #e5e5e5;
+      border-radius: 6px;
+      padding: 12px 16px;
+      background: var(--surface-1);
+      border-color: var(--border-color);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, .06);
+    }
+
+    body[data-theme="dark"] section {
+      box-shadow: 0 1px 2px rgba(0, 0, 0, .4);
+    }
+
+    section h2 {
+      margin: 0;
+      font-size: 16px;
+      color: var(--text-color);
+    }
+
+    button {
+      padding: 6px 12px;
+      border: 1px solid var(--primary-color-dark);
+      border-radius: 4px;
+      background: var(--primary-color);
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: var(--primary-color-dark);
+      border-color: var(--primary-color-dark);
+    }
+
+    .section-help {
+      font-size: 13px;
+      color: #525252;
+    }
+
+    .status-message {
+      font-size: 13px;
+      margin-bottom: 8px;
+      color: #a16207;
+    }
+
+    .status-message.success {
+      color: #15803d;
+    }
+
+    .status-message.error {
+      color: #b91c1c;
+    }
+
+    .translation-groups {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .translation-group {
+      border: 1px solid #d4d4d4;
+      border-radius: 4px;
+      padding: 10px;
+      background: var(--surface-0);
+      border-color: var(--border-color);
+    }
+
+    .translation-group h3 {
+      margin: 0 0 8px 0;
+      font-size: 15px;
+      color: var(--primary-color-dark);
+    }
+
+    .translation-group pre {
+      margin: 0;
+      padding: 8px;
+      background: var(--surface-2);
+      border-radius: 4px;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 13px;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid var(--border-color);
+      text-align: left;
+      padding: 4px 6px;
+      vertical-align: top;
+    }
+
+    th {
+      width: 30%;
+      font-weight: 600;
+      color: var(--text-color);
+    }
+
+    td {
+      color: var(--text-muted);
+    }
+
+    .tab-list {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .tab-button {
+      padding: 6px 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px 4px 0 0;
+      background: var(--surface-2);
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--text-muted);
+      transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    }
+
+    .tab-button:hover {
+      background: var(--surface-1);
+      border-color: var(--accent-color);
+      color: var(--text-color);
+    }
+
+    .tab-button.active {
+      background: var(--surface-0);
+      border-color: var(--accent-color);
+      border-bottom-color: var(--surface-0);
+      color: var(--accent-color);
+    }
+
+    .tab-panel {
+      display: none;
+      border: 1px solid #d4d4d4;
+      border-top: none;
+      border-radius: 0 6px 6px 6px;
+      padding: 12px;
+      background: var(--surface-0);
+      border-color: var(--border-color);
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    .search-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .search-bar button {
+      background: var(--surface-2);
+      color: var(--text-muted);
+      border: 1px solid var(--border-color);
+    }
+
+    .search-bar button:hover {
+      background: var(--primary-color-dark);
+      color: #fff;
+      border-color: var(--primary-color-dark);
+    }
+
+    .search-bar input[type="search"] {
+      flex: 1;
+      min-width: 220px;
+      padding: 6px 8px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      background: var(--surface-0);
+      color: var(--text-color);
+      transition: background .25s ease, color .25s ease, border-color .25s ease;
+    }
+
+    body[data-theme="dark"] .search-bar input[type="search"] {
+      background: var(--surface-1);
+    }
+
+    .search-bar input[type="search"]::placeholder {
+      color: var(--text-muted);
+      opacity: .7;
+    }
+
+    .search-bar input[type="search"]:focus {
+      outline: 2px solid var(--accent-color);
+      outline-offset: 1px;
+    }
+
+    .placeholder-box {
+      padding: 20px;
+      border: 1px dashed var(--primary-color);
+      background: var(--primary-color-light);
+      border-radius: 6px;
+      color: #475569;
+      font-size: 14px;
+    }
+
+    .panel-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    #themeToggle {
+      padding: 4px 12px;
+      background: var(--surface-1);
+      color: var(--text-muted);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 500;
+      letter-spacing: .3px;
+    }
+
+    #themeToggle:hover {
+      background: var(--surface-2);
+      color: var(--text-color);
+    }
+
+    body[data-theme="dark"] #themeToggle {
+      background: var(--surface-2);
+      color: var(--text-muted);
+    }
+
+    body[data-theme="dark"] #themeToggle:hover {
+      background: var(--surface-1);
+      color: var(--text-color);
+    }
+
+    .theme-indicator {
+      font-size: 14px;
+    }
+
+    .copy-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      padding: 2px 4px;
+      margin: 0 2px 0 0;
+      line-height: 1;
+      font-size: 12px;
+      cursor: pointer;
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      transition: color .15s ease, border-color .15s ease, background .15s ease;
+      width: 22px;
+      min-width: 22px;
+      text-align: center;
+    }
+
+    .copy-btn:hover {
+      color: var(--text-color);
+      border-color: var(--border-color);
+      background: var(--surface-1);
+    }
+
+    body[data-theme="dark"] .copy-btn:hover {
+      background: var(--surface-2);
+    }
+
+    .copy-btn:active {
+      transform: translateY(1px);
+    }
+
+    .copy-btn.copied,
+    .copy-btn:disabled {
+      pointer-events: none;
+      opacity: .6;
+    }
+
+    .copy-btn.copied {
+      color: var(--primary-color-dark);
+    }
+
+    .copy-btn::-moz-focus-inner {
+      border: 0;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="panel-header">
+    <h2>Tema Geliştirici Paneli</h2>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <div id="activePage" class="active-page" title="Aktif sayfa"></div>
+      <button id="themeToggle" type="button" aria-label="Temayı değiştir"><span class="theme-indicator" id="themeIcon">🌞</span><span id="themeLabel">Açık Tema</span></button>
+    </div>
+  </div>
+  <p>Burada tema altyapındaki değişkenleri görebilirsin.</p>
+  <div id="debugWarning" class="warning-message">
+    Bu eklentiyi sadece mağaza sahipleri kullanabilir. Mağaza sahibiyseniz yönetici paneline giriş yapıp sayfayı yenileyin.
+  </div>
+
+  <section id="variablesSection">
+
+    <div class="tab-list" role="tablist">
+      <button class="tab-button active" data-tab="global" type="button">Global Değişkenler</button>
+      <button class="tab-button" data-tab="page" type="button">Blok Değişkenleri</button>
+      <button class="tab-button " data-tab="translations" type="button">Dil Değişkenleri</button>
+
+    </div>
+
+    <div class="tab-panel" data-tab-panel="translations">
+      <div class="search-bar">
+        <input id="translationSearch" type="search" placeholder="Dil anahtarı veya metninde ara..." />
+        <button id="refreshTranslations" type="button">Yenile</button>
+      </div>
+
+      <div id="translationStatus" class="status-message"></div>
+      <div id="translationsContainer" class="translation-groups"></div>
+    </div>
+
+    <div class="tab-panel" data-tab-panel="page">
+      <div class="search-bar">
+        <input id="blockVarsSearch" type="search" placeholder="Blok adı, değişken anahtarı veya değerde ara..." />
+        <button id="refreshBlockVars" type="button">Yenile</button>
+      </div>
+      <div id="blockVarsStatus" class="status-message"></div>
+      <div id="blockVarsContainer" class="translation-groups"></div>
+    </div>
+
+    <div class="tab-panel active" data-tab-panel="global">
+      <div class="search-bar">
+        <input id="globalVarsSearch" type="search" placeholder="Global değişken anahtarı veya değerde ara..." />
+        <button id="refreshGlobalVars" type="button">Yenile</button>
+      </div>
+      <div id="globalVarsStatus" class="status-message"></div>
+      <div id="globalVarsContainer" class="translation-groups"></div>
+    </div>
+  </section>
+
+  <script src="panel.js"></script>
+</body>
+
+</html>
