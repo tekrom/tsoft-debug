@@ -21,6 +21,15 @@ const themeIconEl = document.getElementById("themeIcon");
 const themeLabelEl = document.getElementById("themeLabel");
 const toggleAllTranslationsBtn = document.getElementById("toggleAllTranslations");
 const toggleAllBlockVarsBtn = document.getElementById("toggleAllBlockVars");
+const translationSearchPrev = document.getElementById("translationSearchPrev");
+const translationSearchNext = document.getElementById("translationSearchNext");
+const translationMatchCounter = document.getElementById("translationMatchCounter");
+const blockVarsSearchPrev = document.getElementById("blockVarsSearchPrev");
+const blockVarsSearchNext = document.getElementById("blockVarsSearchNext");
+const blockVarsMatchCounter = document.getElementById("blockVarsMatchCounter");
+const globalVarsSearchPrev = document.getElementById("globalVarsSearchPrev");
+const globalVarsSearchNext = document.getElementById("globalVarsSearchNext");
+const globalVarsMatchCounter = document.getElementById("globalVarsMatchCounter");
 
 let translationsStore = {};
 let currentSearchQuery = "";
@@ -54,9 +63,99 @@ function highlightText(text, query) {
   if (!query || typeof text !== 'string') {
     return text;
   }
-  
   const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-  return text.replace(regex, '<span class="highlight">$1</span>');
+  return text.replace(regex, '<span class="highlight" data-search-match>$1</span>');
+}
+
+function createSearchNavigator(config) {
+  const { container, searchInput, prevBtn, nextBtn, counterEl } = config;
+  let matches = [];
+  let currentIndex = -1;
+
+  function collectMatches() {
+    if (!container || !searchInput) return [];
+    const q = (searchInput.value || "").trim();
+    if (!q) return [];
+    const list = container.querySelectorAll("[data-search-match]");
+    return Array.from(list);
+  }
+
+  function expandAncestorDetails(el) {
+    let node = el;
+    while (node && node !== container) {
+      if (node.tagName === "DETAILS") {
+        node.open = true;
+      }
+      node = node.parentElement;
+    }
+  }
+
+  function goToMatch(index) {
+    matches.forEach((m, i) => {
+      m.classList.toggle("highlight-current", i === index);
+    });
+    currentIndex = index;
+    if (index >= 0 && matches[index]) {
+      const el = matches[index];
+      expandAncestorDetails(el);
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    updateUI();
+  }
+
+  function updateUI() {
+    if (!counterEl) return;
+    const q = (searchInput?.value || "").trim();
+    const total = matches.length;
+    if (!q || total === 0) {
+      counterEl.textContent = "";
+      if (prevBtn) prevBtn.disabled = true;
+      if (nextBtn) nextBtn.disabled = true;
+      return;
+    }
+    const idx = currentIndex < 0 ? 0 : currentIndex;
+    counterEl.textContent = `${idx + 1} / ${total}`;
+    if (prevBtn) prevBtn.disabled = false;
+    if (nextBtn) nextBtn.disabled = false;
+  }
+
+  function update() {
+    matches = collectMatches();
+    currentIndex = matches.length > 0 ? 0 : -1;
+    matches.forEach((m, i) => m.classList.toggle("highlight-current", i === 0));
+    if (matches.length > 0 && matches[0]) {
+      expandAncestorDetails(matches[0]);
+      matches[0].scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    updateUI();
+  }
+
+  function next() {
+    if (matches.length === 0) return;
+    const idx = (currentIndex + 1) % matches.length;
+    goToMatch(idx);
+  }
+
+  function prev() {
+    if (matches.length === 0) return;
+    const idx = currentIndex <= 0 ? matches.length - 1 : currentIndex - 1;
+    goToMatch(idx);
+  }
+
+  if (prevBtn) prevBtn.addEventListener("click", prev);
+  if (nextBtn) nextBtn.addEventListener("click", next);
+
+  if (searchInput) {
+    searchInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        if (e.shiftKey) prev();
+        else next();
+      }
+    });
+  }
+
+  return { update, next, prev };
 }
 
 function toggleAllAccordions(container, open) {
@@ -484,14 +583,6 @@ function renderTranslations(filterText = "") {
       keyCellContent.appendChild(keyTextSpan);
       keyCell.appendChild(keyCellContent);
       
-      keyTextSpan.addEventListener("dblclick", () => {
-        const range = document.createRange();
-        range.selectNodeContents(keyTextSpan);
-        const selection = window.getSelection();
-        selection.removeAllRanges();
-        selection.addRange(range);
-      });
-      
       const valueCell = document.createElement("td");
       const valueCellContent = document.createElement("div");
       valueCellContent.className = "cell-content";
@@ -509,21 +600,18 @@ function renderTranslations(filterText = "") {
       const valueTextSpan = document.createElement("span");
       valueTextSpan.className = "cell-text";
       
-      if (normalizedFilter) {
-        valueTextSpan.innerHTML = highlightText(displayValue, normalizedFilter);
+      if (value !== null && typeof value === "object") {
+        const jsonEl = createCollapsibleJsonElement(value, normalizedFilter);
+        valueTextSpan.appendChild(jsonEl);
       } else {
-        valueTextSpan.textContent = displayValue;
+        if (normalizedFilter) {
+          valueTextSpan.innerHTML = highlightText(displayValue, normalizedFilter);
+        } else {
+          valueTextSpan.textContent = displayValue;
+        }
       }
       valueCellContent.appendChild(valueTextSpan);
       valueCell.appendChild(valueCellContent);
-      
-      valueTextSpan.addEventListener("dblclick", () => {
-        const range = document.createRange();
-        range.selectNodeContents(valueTextSpan);
-        const selection = window.getSelection();
-        selection.removeAllRanges();
-        selection.addRange(range);
-      });
       
       rowEl.appendChild(keyCell);
       rowEl.appendChild(valueCell);
@@ -573,20 +661,7 @@ function createValueElement(value, highlightQuery = "") {
   }
 
   if (value !== null && typeof value === "object") {
-    const preEl = document.createElement("pre");
-    try {
-      const jsonStr = JSON.stringify(value, null, 2);
-      if (highlightQuery) {
-        preEl.innerHTML = highlightText(jsonStr, highlightQuery);
-      } else {
-        preEl.textContent = jsonStr;
-      }
-      preEl.dataset.rawValue = jsonStr;
-    } catch (error) {
-      preEl.textContent = String(value);
-      preEl.dataset.rawValue = String(value);
-    }
-    return preEl;
+    return createCollapsibleJsonElement(value, highlightQuery);
   }
   const spanEl = document.createElement("span");
   const formattedValue = formatValue(value);
@@ -597,6 +672,100 @@ function createValueElement(value, highlightQuery = "") {
   }
   spanEl.dataset.rawValue = formattedValue;
   return spanEl;
+}
+
+function previewKeys(obj) {
+  const keys = Object.keys(obj);
+  if (keys.length <= 3) return keys.join(", ");
+  return keys.slice(0, 2).join(", ") + ", …";
+}
+
+function createCollapsibleJsonElement(value, highlightQuery = "") {
+  if (value === null) {
+    const span = document.createElement("span");
+    span.textContent = "null";
+    return span;
+  }
+  if (Array.isArray(value)) {
+    const details = document.createElement("details");
+    details.className = "json-collapse";
+    details.open = true;
+    const summary = document.createElement("summary");
+    summary.className = "json-collapse-summary";
+    summary.textContent = value.length === 0 ? "[]" : `[ ${value.length} öğe ]`;
+    details.appendChild(summary);
+    const body = document.createElement("div");
+    body.className = "json-collapse-body";
+    value.forEach((item, i) => {
+      const row = document.createElement("div");
+      row.className = "json-row";
+      const keySpan = document.createElement("span");
+      keySpan.className = "json-key";
+      keySpan.textContent = String(i);
+      row.appendChild(keySpan);
+      row.appendChild(document.createTextNode(": "));
+      const valEl = createCollapsibleJsonElement(item, highlightQuery);
+      if (valEl.nodeType === 1 && valEl.tagName === "DETAILS") {
+        valEl.classList.add("json-nested");
+      }
+      row.appendChild(valEl);
+      body.appendChild(row);
+    });
+    details.appendChild(body);
+    return details;
+  }
+  if (typeof value === "object") {
+    const details = document.createElement("details");
+    details.className = "json-collapse";
+    details.open = true;
+    const summary = document.createElement("summary");
+    summary.className = "json-collapse-summary";
+    summary.textContent = "{ " + previewKeys(value) + " }";
+    details.appendChild(summary);
+    const body = document.createElement("div");
+    body.className = "json-collapse-body";
+    Object.keys(value).forEach((key) => {
+      const row = document.createElement("div");
+      row.className = "json-row";
+      const keySpan = document.createElement("span");
+      keySpan.className = "json-key";
+      if (highlightQuery && key.toLowerCase().includes(highlightQuery)) {
+        keySpan.innerHTML = highlightText(key, highlightQuery);
+      } else {
+        keySpan.textContent = key;
+      }
+      row.appendChild(keySpan);
+      row.appendChild(document.createTextNode(": "));
+      const v = value[key];
+      if (v !== null && typeof v === "object") {
+        const valEl = createCollapsibleJsonElement(v, highlightQuery);
+        valEl.classList.add("json-nested");
+        row.appendChild(valEl);
+      } else {
+        const valSpan = document.createElement("span");
+        valSpan.className = "json-value";
+        const formatted = typeof v === "string" ? JSON.stringify(v) : formatValue(v);
+        if (highlightQuery) {
+          valSpan.innerHTML = highlightText(formatted, highlightQuery);
+        } else {
+          valSpan.textContent = formatted;
+        }
+        row.appendChild(valSpan);
+      }
+      body.appendChild(row);
+    });
+    details.appendChild(body);
+    return details;
+  }
+  const span = document.createElement("span");
+  span.className = "json-value";
+  const formatted = formatValue(value);
+  if (highlightQuery) {
+    span.innerHTML = highlightText(formatted, highlightQuery);
+  } else {
+    span.textContent = formatted;
+  }
+  return span;
 }
 
 function renderGlobalVars(data, filterText = "") {
@@ -664,14 +833,6 @@ function renderGlobalVars(data, filterText = "") {
     keyCellContent.appendChild(keySpan);
     keyCell.appendChild(keyCellContent);
     
-    keySpan.addEventListener("dblclick", () => {
-      const range = document.createRange();
-      range.selectNodeContents(keySpan);
-      const selection = window.getSelection();
-      selection.removeAllRanges();
-      selection.addRange(range);
-    });
-    
     const valueCell = document.createElement("td");
     const valueCellContent = document.createElement("div");
     valueCellContent.className = "cell-content";
@@ -684,39 +845,14 @@ function renderGlobalVars(data, filterText = "") {
     valueTextSpan.className = "cell-text";
     
     if (value !== null && typeof value === "object") {
-      const preEl = document.createElement("pre");
-      try {
-        if (normalizedFilter) {
-          preEl.innerHTML = highlightText(valueStr, normalizedFilter);
-        } else {
-          preEl.textContent = valueStr;
-        }
-      } catch (error) {
-        preEl.textContent = String(value);
-      }
-      valueTextSpan.appendChild(preEl);
-      
-      preEl.addEventListener("dblclick", () => {
-        const range = document.createRange();
-        range.selectNodeContents(preEl);
-        const selection = window.getSelection();
-        selection.removeAllRanges();
-        selection.addRange(range);
-      });
+      const jsonEl = createCollapsibleJsonElement(value, normalizedFilter);
+      valueTextSpan.appendChild(jsonEl);
     } else {
       if (normalizedFilter) {
         valueTextSpan.innerHTML = highlightText(valueStr, normalizedFilter);
       } else {
         valueTextSpan.textContent = valueStr;
       }
-      
-      valueTextSpan.addEventListener("dblclick", () => {
-        const range = document.createRange();
-        range.selectNodeContents(valueTextSpan);
-        const selection = window.getSelection();
-        selection.removeAllRanges();
-        selection.addRange(range);
-      });
     }
     
     valueCellContent.appendChild(valueTextSpan);
@@ -835,14 +971,6 @@ function renderBlockVars(data, filterText = "") {
       keyCellContent.appendChild(keySpan);
       keyCell.appendChild(keyCellContent);
       
-      keySpan.addEventListener("dblclick", () => {
-        const range = document.createRange();
-        range.selectNodeContents(keySpan);
-        const selection = window.getSelection();
-        selection.removeAllRanges();
-        selection.addRange(range);
-      });
-      
       const valueCell = document.createElement("td");
       const valueCellContent = document.createElement("div");
       valueCellContent.className = "cell-content";
@@ -855,39 +983,14 @@ function renderBlockVars(data, filterText = "") {
       valueTextSpan.className = "cell-text";
       
       if (value !== null && typeof value === "object") {
-        const preEl = document.createElement("pre");
-        try {
-          if (normalizedFilter) {
-            preEl.innerHTML = highlightText(valueStr, normalizedFilter);
-          } else {
-            preEl.textContent = valueStr;
-          }
-        } catch (error) {
-          preEl.textContent = String(value);
-        }
-        valueTextSpan.appendChild(preEl);
-        
-        preEl.addEventListener("dblclick", () => {
-          const range = document.createRange();
-          range.selectNodeContents(preEl);
-          const selection = window.getSelection();
-          selection.removeAllRanges();
-          selection.addRange(range);
-        });
+        const jsonEl = createCollapsibleJsonElement(value, normalizedFilter);
+        valueTextSpan.appendChild(jsonEl);
       } else {
         if (normalizedFilter) {
           valueTextSpan.innerHTML = highlightText(valueStr, normalizedFilter);
         } else {
           valueTextSpan.textContent = valueStr;
         }
-        
-        valueTextSpan.addEventListener("dblclick", () => {
-          const range = document.createRange();
-          range.selectNodeContents(valueTextSpan);
-          const selection = window.getSelection();
-          selection.removeAllRanges();
-          selection.addRange(range);
-        });
       }
       
       valueCellContent.appendChild(valueTextSpan);
@@ -969,6 +1072,7 @@ function fetchTranslations(options = {}) {
 
       translationsStore = payload.payload || {};
       renderTranslations(currentSearchQuery);
+      translationSearchNav?.update();
     }
   );
 }
@@ -1030,6 +1134,7 @@ function fetchGlobalVars(options = {}) {
 
       globalVarsStore = payload.payload;
       renderGlobalVars(globalVarsStore, globalVarsSearchQuery);
+      globalVarsSearchNav?.update();
     }
   );
 }
@@ -1091,6 +1196,7 @@ function fetchBlockVars(options = {}) {
 
       blockVarsStore = payload.payload;
       renderBlockVars(blockVarsStore, blockVarsSearchQuery);
+      blockVarsSearchNav?.update();
     }
   );
 }
@@ -1107,18 +1213,24 @@ function activateTab(tabKey) {
   });
 }
 
+let translationSearchNav;
+let globalVarsSearchNav;
+let blockVarsSearchNav;
+
 refreshTranslationsBtn?.addEventListener("click", fetchTranslations);
 refreshGlobalVarsBtn?.addEventListener("click", fetchGlobalVars);
 refreshBlockVarsBtn?.addEventListener("click", fetchBlockVars);
 translationSearchInput?.addEventListener("input", (event) => {
   currentSearchQuery = event.target.value || "";
   renderTranslations(currentSearchQuery);
+  translationSearchNav?.update();
 });
 
 if (globalVarsSearchInput) {
   globalVarsSearchInput.addEventListener("input", (e) => {
     globalVarsSearchQuery = e.target.value || "";
     renderGlobalVars(globalVarsStore, globalVarsSearchQuery);
+    globalVarsSearchNav?.update();
   });
 }
 
@@ -1126,6 +1238,7 @@ if (blockVarsSearchInput) {
   blockVarsSearchInput.addEventListener("input", (e) => {
     blockVarsSearchQuery = e.target.value || "";
     renderBlockVars(blockVarsStore, blockVarsSearchQuery);
+    blockVarsSearchNav?.update();
   });
 }
 
@@ -1254,3 +1367,45 @@ if (themeToggleBtn) {
 }
 
 initTheme();
+
+translationSearchNav = createSearchNavigator({
+  container: translationsContainerEl,
+  searchInput: translationSearchInput,
+  prevBtn: translationSearchPrev,
+  nextBtn: translationSearchNext,
+  counterEl: translationMatchCounter
+});
+
+globalVarsSearchNav = createSearchNavigator({
+  container: globalVarsContainerEl,
+  searchInput: globalVarsSearchInput,
+  prevBtn: globalVarsSearchPrev,
+  nextBtn: globalVarsSearchNext,
+  counterEl: globalVarsMatchCounter
+});
+
+blockVarsSearchNav = createSearchNavigator({
+  container: blockVarsContainerEl,
+  searchInput: blockVarsSearchInput,
+  prevBtn: blockVarsSearchPrev,
+  nextBtn: blockVarsSearchNext,
+  counterEl: blockVarsMatchCounter
+});
+
+document.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === "f") {
+    e.preventDefault();
+    const activePanel = document.querySelector(".tab-panel.active");
+    const searchInput = activePanel?.querySelector("input[type='search']");
+    if (searchInput) {
+      const sel = getSelectedText();
+      if (sel) searchInput.value = sel;
+      searchInput.focus();
+      searchInput.select();
+      if (sel) {
+        const ev = new Event("input", { bubbles: true });
+        searchInput.dispatchEvent(ev);
+      }
+    }
+  }
+});

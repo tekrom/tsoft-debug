@@ -186,7 +186,7 @@
       background: transparent;
     }
 
-    .translation-group summary {
+    .translation-group > details > summary {
       padding: 6px 10px;
       cursor: pointer;
       user-select: none;
@@ -200,15 +200,15 @@
       transition: background 0.2s ease;
     }
 
-    .translation-group summary::-webkit-details-marker {
+    .translation-group > details > summary::-webkit-details-marker {
       display: none;
     }
 
-    .translation-group summary:hover {
+    .translation-group > details > summary:hover {
       background: var(--surface-1);
     }
 
-    .translation-group summary::before {
+    .translation-group > details > summary::before {
       content: '▶';
       display: inline-block;
       font-size: 11px;
@@ -216,7 +216,7 @@
       color: var(--text-muted);
     }
 
-    .translation-group details[open] summary::before {
+    .translation-group > details[open] > summary::before {
       transform: rotate(90deg);
     }
 
@@ -363,6 +363,95 @@
       user-select: text;
     }
 
+    .json-collapse {
+      margin: 0;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .json-collapse .json-collapse-summary {
+      cursor: pointer;
+      user-select: none;
+      margin: 0 -6px;
+      border-radius: 3px;
+      color: #9aa5b1;
+      font-weight: 500;
+      font-size: 11px;
+      letter-spacing: 0.3px;
+      list-style: none;
+    }
+
+    .json-collapse .json-collapse-summary::-webkit-details-marker {
+      display: none !important;
+    }
+
+    .json-collapse .json-collapse-summary::-moz-list-bullet {
+      display: none;
+    }
+
+    .json-collapse .json-collapse-summary::marker {
+      display: none;
+      content: none;
+    }
+
+    .json-collapse .json-collapse-summary:hover {
+      color: var(--primary-color);
+      background: var(--surface-1);
+    }
+
+    body[data-theme="dark"] .json-collapse .json-collapse-summary {
+      color: #6b7a8a;
+    }
+
+    body[data-theme="dark"] .json-collapse .json-collapse-summary:hover {
+      background: var(--surface-2);
+    }
+
+    .json-collapse .json-collapse-summary::before {
+      content: '▼';
+      display: inline-block;
+      font-size: 9px;
+      margin-right: 4px;
+      transition: transform 0.2s;
+      color: var(--text-muted);
+      opacity: 0.8;
+    }
+
+    .json-collapse:not([open]) .json-collapse-summary::before {
+      transform: rotate(-90deg);
+    }
+
+    .json-collapse-body {
+      padding-left: 14px;
+      border-left: 1px solid var(--border-color);
+      margin: 4px 0 4px 6px;
+    }
+
+    .json-row {
+      margin: 2px 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      user-select: text;
+      display: flex;
+      align-items: flex-start;
+      gap: 2px;
+    }
+
+    .json-key {
+      color: var(--primary-color-dark);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .json-value {
+      color: var(--text-muted);
+    }
+
+    .json-nested {
+      display: inline-block;
+    }
+
     .tab-list {
       display: flex;
       gap: 4px;
@@ -419,7 +508,7 @@
       align-items: center;
       justify-content: space-between;
       position: sticky;
-      top: 26px;
+      top: 29.5px;
       background: var(--surface-0);
       padding: 8px 0;
       z-index: 9;
@@ -467,6 +556,31 @@
     .search-bar input[type="search"]:focus {
       outline: 2px solid var(--accent-color);
       outline-offset: 1px;
+    }
+
+    .search-nav {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .search-match-counter {
+      font-size: 12px;
+      color: var(--text-muted);
+      min-width: 48px;
+      text-align: center;
+    }
+
+    .search-nav-btn {
+      padding: 4px 8px;
+      min-width: 28px;
+      font-size: 11px;
+      line-height: 1;
+    }
+
+    .search-nav-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
     }
 
     .placeholder-box {
@@ -607,6 +721,17 @@
       box-shadow: 0 0 0 2px rgba(253, 216, 53, 0.4);
     }
 
+    .highlight-current {
+      background: var(--primary-color) !important;
+      color: #fff !important;
+      box-shadow: 0 0 0 2px var(--primary-color-dark);
+    }
+
+    body[data-theme="dark"] .highlight-current {
+      background: var(--primary-color) !important;
+      color: #fff !important;
+    }
+
     @keyframes highlightPulse {
       0% {
         box-shadow: 0 0 0 0 rgba(255, 235, 59, 0.6);
@@ -691,8 +816,8 @@
   <section id="variablesSection">
 
     <div class="tab-list" role="tablist">
-      <button class="tab-button active" data-tab="global" type="button">Global Değişkenler</button>
-      <button class="tab-button" data-tab="page" type="button">Blok Değişkenleri</button>
+      <button class="tab-button" data-tab="global" type="button">Global Değişkenler</button>
+      <button class="tab-button active" data-tab="page" type="button">Blok Değişkenleri</button>
       <button class="tab-button " data-tab="translations" type="button">Dil Değişkenleri</button>
 
     </div>
@@ -703,6 +828,11 @@
           <input id="translationSearch" type="search" placeholder="Dil anahtarı veya metninde ara..." />
           <button id="refreshTranslations" type="button">Yenile</button>
         </div>
+        <div class="search-nav" id="translationSearchNav">
+          <span class="search-match-counter" id="translationMatchCounter"></span>
+          <button type="button" class="search-nav-btn" id="translationSearchPrev" title="Önceki (Shift+Enter)">▲</button>
+          <button type="button" class="search-nav-btn" id="translationSearchNext" title="Sonraki (Enter)">▼</button>
+        </div>
         <button id="toggleAllTranslations" class="toggle-all-btn all-closed" type="button">Tümünü Aç</button>
       </div>
 
@@ -710,11 +840,16 @@
       <div id="translationsContainer" class="translation-groups"></div>
     </div>
 
-    <div class="tab-panel" data-tab-panel="page">
+    <div class="tab-panel active" data-tab-panel="page">
       <div class="search-bar">
         <div class="search-input-group">
           <input id="blockVarsSearch" type="search" placeholder="Blok adı, değişken anahtarı veya değerde ara..." />
           <button id="refreshBlockVars" type="button">Yenile</button>
+        </div>
+        <div class="search-nav" id="blockVarsSearchNav">
+          <span class="search-match-counter" id="blockVarsMatchCounter"></span>
+          <button type="button" class="search-nav-btn" id="blockVarsSearchPrev" title="Önceki (Shift+Enter)">▲</button>
+          <button type="button" class="search-nav-btn" id="blockVarsSearchNext" title="Sonraki (Enter)">▼</button>
         </div>
         <button id="toggleAllBlockVars" class="toggle-all-btn all-closed" type="button">Tümünü Aç</button>
       </div>
@@ -722,11 +857,16 @@
       <div id="blockVarsContainer" class="translation-groups"></div>
     </div>
 
-    <div class="tab-panel active" data-tab-panel="global">
+    <div class="tab-panel" data-tab-panel="global">
       <div class="search-bar">
         <div class="search-input-group">
           <input id="globalVarsSearch" type="search" placeholder="Global değişken anahtarı veya değerde ara..." />
           <button id="refreshGlobalVars" type="button">Yenile</button>
+        </div>
+        <div class="search-nav" id="globalVarsSearchNav">
+          <span class="search-match-counter" id="globalVarsMatchCounter"></span>
+          <button type="button" class="search-nav-btn" id="globalVarsSearchPrev" title="Önceki (Shift+Enter)">▲</button>
+          <button type="button" class="search-nav-btn" id="globalVarsSearchNext" title="Sonraki (Enter)">▼</button>
         </div>
       </div>
       <div id="globalVarsStatus" class="status-message"></div>
