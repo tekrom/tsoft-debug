@@ -367,6 +367,10 @@
       display: flex;
       gap: 4px;
       flex-wrap: wrap;
+      position: sticky;
+      top: 0;
+      z-index: 9;
+      background: var(--surface-0);
     }
 
     .tab-button {
@@ -414,6 +418,11 @@
       flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
+      position: sticky;
+      top: 26px;
+      background: var(--surface-0);
+      padding: 8px 0;
+      z-index: 9;
     }
 
     .search-bar .search-input-group {
@@ -568,9 +577,11 @@
       0% {
         transform: scale(1);
       }
+
       50% {
         transform: scale(1.2);
       }
+
       100% {
         transform: scale(1);
       }
@@ -600,6 +611,7 @@
       0% {
         box-shadow: 0 0 0 0 rgba(255, 235, 59, 0.6);
       }
+
       100% {
         box-shadow: 0 0 0 2px rgba(255, 235, 59, 0.3);
       }
@@ -613,6 +625,7 @@
       0% {
         background: var(--primary-color-light);
       }
+
       100% {
         background: transparent;
       }
@@ -665,12 +678,14 @@
     <h2>Tema Geliştirici Paneli</h2>
     <div style="display:flex; align-items:center; gap:8px;">
       <div id="activePage" class="active-page" title="Aktif sayfa"></div>
-      <button id="themeToggle" type="button" aria-label="Temayı değiştir"><span class="theme-indicator" id="themeIcon">🌞</span><span id="themeLabel">Açık Tema</span></button>
+      <button id="themeToggle" type="button" aria-label="Temayı değiştir"><span class="theme-indicator"
+          id="themeIcon">🌞</span><span id="themeLabel">Açık Tema</span></button>
     </div>
   </div>
 
   <div id="debugWarning" class="warning-message">
-    Bu eklentiyi sadece mağaza sahipleri kullanabilir. Mağaza sahibiyseniz yönetici paneline giriş yapıp sayfayı yenileyin.
+    Bu eklentiyi sadece mağaza sahipleri kullanabilir. Mağaza sahibiyseniz yönetici paneline giriş yapıp sayfayı
+    yenileyin.
   </div>
 
   <section id="variablesSection">
